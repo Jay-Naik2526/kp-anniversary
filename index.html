@@ -1427,6 +1427,12 @@
             border-radius: 4px;
             border: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+            transition: opacity 0.2s ease-in-out;
+            opacity: 1;
+        }
+
+        #viewer img.fade-out {
+            opacity: 0;
         }
 
         #vm-video {
@@ -2472,19 +2478,37 @@
             if (viewerList.length === 0) return;
             viewerIndex = idx;
             const photoIdx = viewerList[idx];
-
             const img = document.getElementById('viewer-img');
-            img.src = photoPath(photoIdx);
-
             const caption = document.getElementById('viewer-caption');
-            caption.innerHTML = `
-                <div style="font-weight:700;font-size:16px;color:#fff">${PHOTO_LABELS[(photoIdx - 1) % PHOTO_LABELS.length]}</div>
-                <div style="font-family:'Noto Sans Gujarati',sans-serif;font-size:14px;color:var(--gold);margin-top:2px">${PHOTO_LABELS_GUJ[(photoIdx - 1) % PHOTO_LABELS_GUJ.length]}</div>
-            `;
-
             const viewer = document.getElementById('viewer');
-            viewer.classList.add('open');
-            viewer.style.display = 'flex';
+            const isAlreadyOpen = viewer.classList.contains('open');
+
+            if (isAlreadyOpen) {
+                // Fade out current image first
+                img.classList.add('fade-out');
+                setTimeout(() => {
+                    img.src = photoPath(photoIdx);
+                    caption.innerHTML = `
+                        <div style="font-weight:700;font-size:16px;color:#fff">${PHOTO_LABELS[(photoIdx - 1) % PHOTO_LABELS.length]}</div>
+                        <div style="font-family:'Noto Sans Gujarati',sans-serif;font-size:14px;color:var(--gold);margin-top:2px">${PHOTO_LABELS_GUJ[(photoIdx - 1) % PHOTO_LABELS_GUJ.length]}</div>
+                    `;
+                    // Wait for new image to load/decode fully before fading back in
+                    img.onload = () => {
+                        img.classList.remove('fade-out');
+                        img.onload = null;
+                    };
+                }, 200);
+            } else {
+                // First open
+                img.src = photoPath(photoIdx);
+                caption.innerHTML = `
+                    <div style="font-weight:700;font-size:16px;color:#fff">${PHOTO_LABELS[(photoIdx - 1) % PHOTO_LABELS.length]}</div>
+                    <div style="font-family:'Noto Sans Gujarati',sans-serif;font-size:14px;color:var(--gold);margin-top:2px">${PHOTO_LABELS_GUJ[(photoIdx - 1) % PHOTO_LABELS_GUJ.length]}</div>
+                `;
+                img.classList.remove('fade-out');
+                viewer.classList.add('open');
+                viewer.style.display = 'flex';
+            }
         }
 
         function closeViewer() {
@@ -2493,6 +2517,9 @@
             viewer.classList.remove('open');
             setTimeout(() => {
                 viewer.style.display = 'none';
+                const img = document.getElementById('viewer-img');
+                img.classList.remove('fade-out');
+                img.onload = null;
             }, 300);
         }
 
